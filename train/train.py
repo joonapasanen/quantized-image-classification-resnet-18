@@ -8,7 +8,7 @@ from torchvision.transforms import v2
 import matplotlib.pyplot as plt
 from pathlib import Path
 
-from model import model
+from train.model import model
 
 RESULTS_DIR = Path("results")
 
