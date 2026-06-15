@@ -11,5 +11,6 @@ wheels/
 .venv
 uv.lock
 
-# Model weights
+# Model weights and data
+results/*.pt
 data/
