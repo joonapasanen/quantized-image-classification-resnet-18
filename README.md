@@ -6,7 +6,9 @@ Training ran for 15 epochs with SGD (momentum 0.9, weight decay 5e-4), a cosine 
 
 ## Results
 
-The loss curve: ![loss curve](results/loss_curve.png)
+Fine-tuning loss curve:
+
+![loss curve](results/loss_curve.png)
 
 | Model                                   | Size | Loss   | Accuracy |
 | --------------------------------------- | ---- | ------ | -------- |
