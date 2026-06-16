@@ -1,6 +1,7 @@
 import argparse
 import torch
 import torch.nn as nn
+import onnxruntime as ort
 from torch.utils.data import DataLoader
 from torchvision.datasets.cifar import CIFAR10
 from torchvision.transforms import v2
@@ -18,7 +19,7 @@ test_transforms = v2.Compose([
     v2.Normalize(IMAGENET_MEAN, IMAGENET_STD),
 ])
 
-def evaluate(weights: str):
+def evaluate_pt(weights: str):
     model.load_state_dict(torch.load(weights, map_location=DEVICE))
     model.to(DEVICE)
     model.eval()
@@ -39,12 +40,40 @@ def evaluate(weights: str):
             correct += (X.argmax(dim=1) == Y).sum().item()
             total += Y.size(0)
 
-    print(f"weights: {weights}")
-    print(f"loss:       {total_loss / len(loader):.4f}")
-    print(f"accuracy:   {correct / total * 100:.2f}%")
+    return total_loss / len(loader), correct / total
+
+def evaluate_onnx(weights: str):
+    session = ort.InferenceSession(weights)
+
+    dataset = CIFAR10("data/", train=False, download=True, transform=test_transforms)
+    loader = DataLoader(dataset, batch_size=256, shuffle=False, num_workers=4)
+
+    loss_fn = nn.CrossEntropyLoss()
+    total_loss = 0.0
+    correct = 0
+    total = 0
+
+    for x, Y in loader:
+        X = session.run(None, {"input": x.numpy()})[0]
+        X = torch.from_numpy(X)
+        total_loss += loss_fn(X, Y).item()
+        correct += (X.argmax(dim=1) == Y).sum().item()
+        total += Y.size(0)
+
+    return total_loss / len(loader), correct / total
+
+def evaluate(weights: str):
+    if weights.endswith(".onnx"):
+        loss, acc = evaluate_onnx(weights)
+    else:
+        loss, acc = evaluate_pt(weights)
+
+    print(f"weights:  {weights}")
+    print(f"loss:     {loss:.4f}")
+    print(f"accuracy: {acc * 100:.2f}%")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("weights", help="path to .pt file")
+    parser.add_argument("weights", help="path to .pt or .onnx file")
     args = parser.parse_args()
     evaluate(args.weights)
